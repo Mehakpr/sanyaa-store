@@ -31,6 +31,7 @@ export default function AdminPanel() {
     stock: "",
   });
   const [selectedColors, setSelectedColors] = useState([]);
+  const [customColorInput, setCustomColorInput] = useState("");
   const [selectedSizes, setSelectedSizes] = useState([]);
   const [images, setImages] = useState([]);
   const [message, setMessage] = useState("");
@@ -61,18 +62,33 @@ export default function AdminPanel() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new window.Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const maxWidth = 800;
+          const scale = Math.min(1, maxWidth / img.width);
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", 0.6));
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    const readers = files.map((file) => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.readAsDataURL(file);
-      });
-    });
-
-    Promise.all(readers).then((base64Images) => {
-      setImages((prev) => [...prev, ...base64Images]);
+    setMessage("Images process ho rahi hain...");
+    Promise.all(files.map(compressImage)).then((compressedImages) => {
+      setImages((prev) => [...prev, ...compressedImages]);
+      setMessage("");
     });
   };
 
@@ -84,6 +100,14 @@ export default function AdminPanel() {
     setSelectedColors((prev) =>
       prev.includes(color) ? prev.filter((c) => c !== color) : [...prev, color]
     );
+  };
+
+  const addCustomColors = () => {
+    if (customColorInput.trim()) {
+      const newColors = customColorInput.split(",").map((c) => c.trim()).filter(Boolean);
+      setSelectedColors((prev) => [...new Set([...prev, ...newColors])]);
+      setCustomColorInput("");
+    }
   };
 
   const toggleSize = (size) => {
@@ -110,6 +134,7 @@ export default function AdminPanel() {
   const resetForm = () => {
     setForm({ name: "", description: "", originalPrice: "", price: "", category: "", subcategory: "", stock: "" });
     setSelectedColors([]);
+    setCustomColorInput("");
     setSelectedSizes([]);
     setImages([]);
     setReviews([]);
@@ -133,30 +158,34 @@ export default function AdminPanel() {
     const url = editingId ? `/api/products/${editingId}` : "/api/products";
     const method = editingId ? "PUT" : "POST";
 
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        description: form.description || "No description available.",
-        originalPrice: Number(form.originalPrice),
-        price: Number(form.price),
-        stock: Number(form.stock) || 100,
-        sizes: selectedSizes,
-        colors: selectedColors,
-        images,
-        reviews,
-      }),
-    });
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          description: form.description || "No description available.",
+          originalPrice: Number(form.originalPrice),
+          price: Number(form.price),
+          stock: Number(form.stock) || 100,
+          sizes: selectedSizes,
+          colors: selectedColors,
+          images,
+          reviews,
+        }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (data.success) {
-      setMessage(editingId ? "Product updated!" : "Product added successfully!");
-      resetForm();
-      loadProducts();
-    } else {
-      setMessage("Error: " + data.error);
+      if (data.success) {
+        setMessage(editingId ? "Product updated!" : "Product added successfully!");
+        resetForm();
+        loadProducts();
+      } else {
+        setMessage("Error: " + data.error);
+      }
+    } catch (err) {
+      setMessage("Error: " + err.message);
     }
   };
 
@@ -330,8 +359,8 @@ export default function AdminPanel() {
         )}
 
         <div>
-          <label style={{ fontSize: "13px", fontWeight: "600", color: "#3d2b1f", display: "block", marginBottom: "6px" }}>Colors (multiple select kar sakte ho)</label>
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <label style={{ fontSize: "13px", fontWeight: "600", color: "#3d2b1f", display: "block", marginBottom: "6px" }}>Colors</label>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
             {COLOR_OPTIONS.map((color) => (
               <button
                 key={color}
@@ -351,6 +380,26 @@ export default function AdminPanel() {
               </button>
             ))}
           </div>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <input
+              placeholder="Ya khud likho, e.g. Peach, Mustard"
+              value={customColorInput}
+              onChange={(e) => setCustomColorInput(e.target.value)}
+              style={{ ...inputStyle, flex: 1 }}
+            />
+            <button type="button" onClick={addCustomColors} style={{ padding: "0 16px", background: "#3d2b1f", color: "#fff", border: "none", borderRadius: "6px", fontSize: "13px", cursor: "pointer" }}>
+              Add
+            </button>
+          </div>
+          {selectedColors.length > 0 && (
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "8px" }}>
+              {selectedColors.map((c) => (
+                <span key={c} style={{ background: "#3d2b1f", color: "#fff", padding: "4px 10px", borderRadius: "12px", fontSize: "11px" }}>
+                  {c} <span onClick={() => toggleColor(c)} style={{ cursor: "pointer", marginLeft: "4px" }}>✕</span>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <input name="stock" type="number" placeholder="Stock (optional, default 100)" value={form.stock} onChange={handleChange} style={inputStyle} />
@@ -440,4 +489,3 @@ export default function AdminPanel() {
       </div>
     </div>
   );
-}
