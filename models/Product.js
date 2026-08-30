@@ -9,7 +9,7 @@ const ReviewSchema = new mongoose.Schema({
 const ProductSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
-    description: { type: String, required: true },
+    description: { type: String, default: "No description available." },
     originalPrice: { type: Number, required: true },
     price: { type: Number, required: true },
     images: { type: [String], required: true },

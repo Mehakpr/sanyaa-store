@@ -2,13 +2,22 @@
 import { useEffect, useState } from "react";
 
 const CATEGORY_DATA = {
-  Men: ["Shirt", "T-Shirt", "Jeans", "Pants", "Shoes", "Perfume", "Jacket", "Watch"],
-  Women: ["Kurti", "Top", "Dress", "Jeans", "Saree", "Shoes", "Perfume", "Handbag"],
+  Men: ["Shirt", "T-Shirt", "Jeans", "Pants", "Shoes", "Sandals", "Perfume", "Jacket", "Watch", "Sunglasses", "Belt"],
+  Women: ["Kurti", "Top", "Dress", "Jeans", "Saree", "Shoes", "Sandals", "Heels", "Perfume", "Handbag", "Jewellery"],
   Electronics: ["Mobile Accessories", "Earbuds", "Watch", "Charger", "Speaker"],
   "Home & Kitchen": ["Kitchen Tools", "Decor", "Storage", "Bedsheets"],
 };
 
-const COLOR_OPTIONS = ["Red", "Blue", "Black", "White", "Grey", "Olive Green", "Beige", "Maroon", "Pink", "Yellow", "Navy Blue", "Brown"];
+const SIZE_PRESETS = {
+  clothing: ["XS", "S", "M", "L", "XL", "XXL"],
+  shoes: ["6", "7", "8", "9", "10", "11"],
+  none: [],
+};
+
+const SHOE_TYPES = ["Shoes", "Sandals", "Heels"];
+const CLOTHING_TYPES = ["Shirt", "T-Shirt", "Jeans", "Pants", "Kurti", "Top", "Dress", "Saree", "Jacket"];
+
+const COLOR_OPTIONS = ["Red", "Blue", "Black", "White", "Grey", "Olive Green", "Beige", "Maroon", "Pink", "Yellow", "Navy Blue", "Brown", "Gold", "Silver"];
 
 export default function AdminPanel() {
   const [products, setProducts] = useState([]);
@@ -20,9 +29,9 @@ export default function AdminPanel() {
     category: "",
     subcategory: "",
     stock: "",
-    sizes: "",
   });
   const [selectedColors, setSelectedColors] = useState([]);
+  const [selectedSizes, setSelectedSizes] = useState([]);
   const [images, setImages] = useState([]);
   const [message, setMessage] = useState("");
   const [editingId, setEditingId] = useState(null);
@@ -42,6 +51,12 @@ export default function AdminPanel() {
     loadProducts();
   }, []);
 
+  const getSizeOptions = () => {
+    if (SHOE_TYPES.includes(form.subcategory)) return SIZE_PRESETS.shoes;
+    if (CLOTHING_TYPES.includes(form.subcategory)) return SIZE_PRESETS.clothing;
+    return [];
+  };
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -57,16 +72,24 @@ export default function AdminPanel() {
     });
 
     Promise.all(readers).then((base64Images) => {
-      setImages(base64Images);
+      setImages((prev) => [...prev, ...base64Images]);
     });
   };
 
+  const removeImage = (index) => {
+    setImages(images.filter((_, i) => i !== index));
+  };
+
   const toggleColor = (color) => {
-    if (selectedColors.includes(color)) {
-      setSelectedColors(selectedColors.filter((c) => c !== color));
-    } else {
-      setSelectedColors([...selectedColors, color]);
-    }
+    setSelectedColors((prev) =>
+      prev.includes(color) ? prev.filter((c) => c !== color) : [...prev, color]
+    );
+  };
+
+  const toggleSize = (size) => {
+    setSelectedSizes((prev) =>
+      prev.includes(size) ? prev.filter((s) => s !== size) : [...prev, size]
+    );
   };
 
   const addReview = () => {
@@ -85,8 +108,9 @@ export default function AdminPanel() {
   };
 
   const resetForm = () => {
-    setForm({ name: "", description: "", originalPrice: "", price: "", category: "", subcategory: "", stock: "", sizes: "" });
+    setForm({ name: "", description: "", originalPrice: "", price: "", category: "", subcategory: "", stock: "" });
     setSelectedColors([]);
+    setSelectedSizes([]);
     setImages([]);
     setReviews([]);
     setEditingId(null);
@@ -114,10 +138,11 @@ export default function AdminPanel() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
+        description: form.description || "No description available.",
         originalPrice: Number(form.originalPrice),
         price: Number(form.price),
         stock: Number(form.stock) || 100,
-        sizes: form.sizes ? form.sizes.split(",").map((s) => s.trim()) : [],
+        sizes: selectedSizes,
         colors: selectedColors,
         images,
         reviews,
@@ -144,9 +169,9 @@ export default function AdminPanel() {
       category: p.category,
       subcategory: p.subcategory,
       stock: p.stock,
-      sizes: (p.sizes || []).join(", "),
     });
     setSelectedColors(p.colors || []);
+    setSelectedSizes(p.sizes || []);
     setImages(p.images || []);
     setReviews(p.reviews || []);
     setEditingId(p._id);
@@ -183,11 +208,13 @@ export default function AdminPanel() {
       ? Math.round(((form.originalPrice - form.price) / form.originalPrice) * 100)
       : 0;
 
+  const sizeOptions = getSizeOptions();
+
   return (
     <div style={{ padding: "20px", maxWidth: "700px", margin: "0 auto", fontFamily: "system-ui, sans-serif" }}>
       <h1 style={{ fontSize: "24px", marginBottom: "6px", color: "#3d2b1f" }}>Admin Panel</h1>
       <p style={{ fontSize: "13px", color: "#888", marginBottom: "20px" }}>
-        Manage your MK Legacy products
+        Manage your Sanyaa products
       </p>
 
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "10px", background: "#fff", padding: "20px", borderRadius: "10px", border: "1px solid #eee" }}>
@@ -196,7 +223,7 @@ export default function AdminPanel() {
         </h3>
 
         <input name="name" placeholder="Product Name" value={form.name} onChange={handleChange} required style={inputStyle} />
-        <textarea name="description" placeholder="Description" value={form.description} onChange={handleChange} required style={{ ...inputStyle, minHeight: "70px" }} />
+        <textarea name="description" placeholder="Description (optional)" value={form.description} onChange={handleChange} style={{ ...inputStyle, minHeight: "60px" }} />
 
         <div style={{ display: "flex", gap: "10px" }}>
           <input name="originalPrice" type="number" placeholder="MRP / Original Price (₹)" value={form.originalPrice} onChange={handleChange} required style={inputStyle} />
@@ -211,7 +238,7 @@ export default function AdminPanel() {
 
         <div>
           <label style={{ fontSize: "13px", fontWeight: "600", color: "#3d2b1f", display: "block", marginBottom: "6px" }}>
-            Upload Images (multiple select kar sakte ho)
+            Upload Images (multiple baar bhi upload kar sakte ho)
           </label>
           <input type="file" accept="image/*" multiple onChange={handleImageChange} style={inputStyle} />
         </div>
@@ -219,7 +246,16 @@ export default function AdminPanel() {
         {images.length > 0 && (
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
             {images.map((img, i) => (
-              <img key={i} src={img} alt="preview" style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "6px", border: "1px solid #ccc" }} />
+              <div key={i} style={{ position: "relative" }}>
+                <img src={img} alt="preview" style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "6px", border: "1px solid #ccc" }} />
+                <button
+                  type="button"
+                  onClick={() => removeImage(i)}
+                  style={{ position: "absolute", top: "-6px", right: "-6px", background: "#d33", color: "#fff", border: "none", borderRadius: "50%", width: "18px", height: "18px", fontSize: "10px", cursor: "pointer" }}
+                >
+                  ✕
+                </button>
+              </div>
             ))}
           </div>
         )}
@@ -229,7 +265,10 @@ export default function AdminPanel() {
           <select
             name="category"
             value={form.category}
-            onChange={(e) => setForm({ ...form, category: e.target.value, subcategory: "" })}
+            onChange={(e) => {
+              setForm({ ...form, category: e.target.value, subcategory: "" });
+              setSelectedSizes([]);
+            }}
             required
             style={inputStyle}
           >
@@ -242,11 +281,14 @@ export default function AdminPanel() {
 
         {form.category && (
           <div>
-            <label style={{ fontSize: "13px", fontWeight: "600", color: "#3d2b1f", display: "block", marginBottom: "6px" }}>Subcategory (Product Type)</label>
+            <label style={{ fontSize: "13px", fontWeight: "600", color: "#3d2b1f", display: "block", marginBottom: "6px" }}>Product Type</label>
             <select
               name="subcategory"
               value={form.subcategory}
-              onChange={handleChange}
+              onChange={(e) => {
+                setForm({ ...form, subcategory: e.target.value });
+                setSelectedSizes([]);
+              }}
               required
               style={inputStyle}
             >
@@ -258,7 +300,34 @@ export default function AdminPanel() {
           </div>
         )}
 
-        <input name="sizes" placeholder="Sizes (comma separated, e.g. S, M, L, XL) - optional" value={form.sizes} onChange={handleChange} style={inputStyle} />
+        {sizeOptions.length > 0 && (
+          <div>
+            <label style={{ fontSize: "13px", fontWeight: "600", color: "#3d2b1f", display: "block", marginBottom: "6px" }}>
+              Available Sizes (select karo)
+            </label>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              {sizeOptions.map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => toggleSize(size)}
+                  style={{
+                    padding: "8px 14px",
+                    borderRadius: "6px",
+                    border: selectedSizes.includes(size) ? "2px solid #3d2b1f" : "1px solid #ccc",
+                    background: selectedSizes.includes(size) ? "#3d2b1f" : "#fff",
+                    color: selectedSizes.includes(size) ? "#fff" : "#333",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                  }}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div>
           <label style={{ fontSize: "13px", fontWeight: "600", color: "#3d2b1f", display: "block", marginBottom: "6px" }}>Colors (multiple select kar sakte ho)</label>

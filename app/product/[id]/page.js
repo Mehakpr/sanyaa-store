@@ -31,6 +31,11 @@ export default function ProductDetail() {
       cart.push({ ...product, cartId, size: selectedSize, color: selectedColor, qty: 1 });
     }
     localStorage.setItem("cart", JSON.stringify(cart));
+    return cart;
+  };
+
+  const handleAddToCart = () => {
+    addToCart();
     alert("Product cart mein add ho gaya!");
   };
 
@@ -59,7 +64,6 @@ export default function ProductDetail() {
 
   return (
     <div style={{ minHeight: "100vh", background: BG, fontFamily: "system-ui, sans-serif" }}>
-      {/* Header */}
       <header
         style={{
           padding: "18px 24px",
@@ -89,7 +93,6 @@ export default function ProductDetail() {
             gap: "24px",
           }}
         >
-          {/* Image */}
           <div>
             <div style={{ width: "100%", height: "340px", background: "#111", borderRadius: "14px", overflow: "hidden", marginBottom: "12px", position: "relative" }}>
               {images[activeImage] && (
@@ -129,7 +132,6 @@ export default function ProductDetail() {
             )}
           </div>
 
-          {/* Details */}
           <div>
             <p style={{ color: GOLD, fontSize: "11px", letterSpacing: "2px", fontWeight: "700", marginBottom: "6px" }}>
               {product.category?.toUpperCase()} {product.subcategory && `• ${product.subcategory.toUpperCase()}`}
@@ -190,8 +192,9 @@ export default function ProductDetail() {
                       key={size}
                       onClick={() => setSelectedSize(size)}
                       style={{
-                        width: "40px",
+                        minWidth: "40px",
                         height: "40px",
+                        padding: "0 10px",
                         borderRadius: "8px",
                         border: selectedSize === size ? `1.5px solid ${GOLD}` : `1px solid ${BORDER}`,
                         background: selectedSize === size ? GOLD : "transparent",
@@ -214,7 +217,7 @@ export default function ProductDetail() {
 
             <div style={{ display: "flex", gap: "10px" }}>
               <button
-                onClick={addToCart}
+                onClick={handleAddToCart}
                 style={{
                   flex: 1,
                   background: "transparent",
@@ -248,10 +251,13 @@ export default function ProductDetail() {
                 BUY NOW
               </button>
             </div>
+
+            <p style={{ fontSize: "11px", color: "#777", marginTop: "16px", textAlign: "center" }}>
+              ✓ 7 Day Easy Return &nbsp;•&nbsp; ✓ 100% Secure Payment
+            </p>
           </div>
         </div>
 
-        {/* Reviews */}
         {product.reviews && product.reviews.length > 0 && (
           <div style={{ marginTop: "30px" }}>
             <h3 style={{ fontSize: "16px", fontWeight: "600", color: "#f5f0e8", marginBottom: "14px", fontFamily: "Georgia, serif" }}>
