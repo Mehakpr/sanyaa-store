@@ -17,7 +17,7 @@ const SIZE_PRESETS = {
 const SHOE_TYPES = ["Shoes", "Sandals", "Heels"];
 const CLOTHING_TYPES = ["Shirt", "T-Shirt", "Jeans", "Pants", "Kurti", "Top", "Dress", "Saree", "Jacket"];
 
-const COLOR_OPTIONS = ["Red", "Blue", "Black", "White", "Grey", "Olive Green", "Beige", "Maroon", "Pink", "Yellow", "Navy Blue", "Brown", "Gold", "Silver"];
+const COLOR_OPTIONS = ["Red", "Blue", "Black", "White", "Grey", "Olive Green", "Beige", "Maroon", "Pink", "Yellow", "Navy Blue", "Brown", "Gold", "Silver", "Peach", "Mustard", "Teal", "Purple", "Orange", "Green"];
 
 export default function AdminPanel() {
   const [products, setProducts] = useState([]);
@@ -360,39 +360,64 @@ export default function AdminPanel() {
 
         <div>
           <label style={{ fontSize: "13px", fontWeight: "600", color: "#3d2b1f", display: "block", marginBottom: "6px" }}>Colors</label>
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
-            {COLOR_OPTIONS.map((color) => (
+          <input
+            placeholder="Color search karo ya naya likho (Enter dabao add karne ke liye)"
+            value={customColorInput}
+            onChange={(e) => setCustomColorInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addCustomColors();
+              }
+            }}
+            style={inputStyle}
+          />
+
+          {customColorInput.trim() && (
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "8px" }}>
+              {COLOR_OPTIONS.filter((c) =>
+                c.toLowerCase().includes(customColorInput.toLowerCase())
+              ).map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => {
+                    setSelectedColors((prev) => [...new Set([...prev, color])]);
+                    setCustomColorInput("");
+                  }}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: "16px",
+                    border: "1px solid #ccc",
+                    background: "#f5f5f5",
+                    color: "#333",
+                    fontSize: "12px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {color}
+                </button>
+              ))}
               <button
-                key={color}
                 type="button"
-                onClick={() => toggleColor(color)}
+                onClick={addCustomColors}
                 style={{
                   padding: "6px 14px",
                   borderRadius: "16px",
-                  border: selectedColors.includes(color) ? "2px solid #3d2b1f" : "1px solid #ccc",
-                  background: selectedColors.includes(color) ? "#3d2b1f" : "#fff",
-                  color: selectedColors.includes(color) ? "#fff" : "#333",
+                  border: "1px solid #3d2b1f",
+                  background: "#3d2b1f",
+                  color: "#fff",
                   fontSize: "12px",
                   cursor: "pointer",
                 }}
               >
-                {color}
+                + Add "{customColorInput}"
               </button>
-            ))}
-          </div>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <input
-              placeholder="Ya khud likho, e.g. Peach, Mustard"
-              value={customColorInput}
-              onChange={(e) => setCustomColorInput(e.target.value)}
-              style={{ ...inputStyle, flex: 1 }}
-            />
-            <button type="button" onClick={addCustomColors} style={{ padding: "0 16px", background: "#3d2b1f", color: "#fff", border: "none", borderRadius: "6px", fontSize: "13px", cursor: "pointer" }}>
-              Add
-            </button>
-          </div>
+            </div>
+          )}
+
           {selectedColors.length > 0 && (
-            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "8px" }}>
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "10px" }}>
               {selectedColors.map((c) => (
                 <span key={c} style={{ background: "#3d2b1f", color: "#fff", padding: "4px 10px", borderRadius: "12px", fontSize: "11px" }}>
                   {c} <span onClick={() => toggleColor(c)} style={{ cursor: "pointer", marginLeft: "4px" }}>✕</span>
@@ -489,3 +514,4 @@ export default function AdminPanel() {
       </div>
     </div>
   );
+}

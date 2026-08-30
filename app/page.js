@@ -22,28 +22,29 @@ export default function Home() {
     .filter((p) => activeCategory === "All" || p.category === activeCategory)
     .filter((p) => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
+  const featured = filteredProducts[0];
+  const restProducts = filteredProducts.slice(1);
+
   const GOLD = "#d4af37";
   const BG = "#0e0c0a";
   const CARD = "#1a1613";
+  const CARD2 = "#221c17";
   const BORDER = "#2c261f";
 
   return (
     <div style={{ minHeight: "100vh", background: BG, fontFamily: "system-ui, -apple-system, sans-serif" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
         @keyframes fadeInLogo {
           0% { opacity: 0; transform: translateY(-10px); }
           100% { opacity: 1; transform: translateY(0); }
         }
-        .sanyaa-logo {
-          animation: fadeInLogo 1.2s ease-out;
-        }
+        .sanyaa-logo { animation: fadeInLogo 1.2s ease-out; }
       `}</style>
 
       {/* Header */}
       <header
         style={{
-          padding: "18px 24px",
+          padding: "16px 20px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -52,51 +53,18 @@ export default function Home() {
       >
         <h1
           className="sanyaa-logo"
-          style={{
-            fontSize: "42px",
-            fontWeight: "700",
-            margin: 0,
-            color: GOLD,
-            fontFamily: "'Dancing Script', cursive",
-          }}
+          style={{ fontSize: "36px", fontWeight: "700", margin: 0, color: GOLD, fontFamily: "'Dancing Script', cursive" }}
         >
           Sanyaa
         </h1>
-        <a href="/cart" style={{ textDecoration: "none", color: GOLD, fontSize: "20px" }}>🛍</a>
+        <div style={{ display: "flex", gap: "16px" }}>
+          <span style={{ color: GOLD, fontSize: "18px" }}>♡</span>
+          <a href="/cart" style={{ textDecoration: "none", color: GOLD, fontSize: "18px" }}>🛍</a>
+        </div>
       </header>
 
-      {/* Hero */}
-      <div style={{ padding: "50px 24px", textAlign: "center" }}>
-        <p style={{ color: GOLD, fontSize: "11px", letterSpacing: "3px", fontWeight: "700", marginBottom: "10px" }}>
-          NEW ARRIVAL
-        </p>
-        <h2 style={{ fontSize: "30px", fontWeight: "500", color: "#f5f0e8", margin: "0 0 12px 0", fontFamily: "Georgia, serif" }}>
-          Timeless Elegance
-        </h2>
-        <p style={{ color: "#a8a29a", fontSize: "13px", margin: "0 0 24px 0" }}>
-          Curated collections, crafted for those who value quality
-        </p>
-        <a href="#products" style={{ textDecoration: "none" }}>
-          <button
-            style={{
-              background: GOLD,
-              color: "#1a1613",
-              padding: "13px 32px",
-              border: "none",
-              borderRadius: "8px",
-              fontWeight: "700",
-              fontSize: "12px",
-              letterSpacing: "1.5px",
-              cursor: "pointer",
-            }}
-          >
-            EXPLORE NOW
-          </button>
-        </a>
-      </div>
-
-      <main id="products" style={{ padding: "20px 20px 50px", maxWidth: "1100px", margin: "0 auto" }}>
-        {/* Search */}
+      {/* Search */}
+      <div style={{ padding: "16px 20px 0" }}>
         <input
           type="text"
           placeholder="Search for products..."
@@ -105,53 +73,98 @@ export default function Home() {
           style={{
             width: "100%",
             padding: "13px 16px",
-            borderRadius: "10px",
+            borderRadius: "12px",
             border: `1px solid ${BORDER}`,
-            marginBottom: "18px",
             fontSize: "14px",
             boxSizing: "border-box",
             background: CARD,
             color: "#f5f0e8",
           }}
         />
+      </div>
 
-        {/* Categories */}
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "26px" }}>
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
+      {/* Category pills */}
+      <div style={{ display: "flex", gap: "10px", padding: "16px 20px", overflowX: "auto" }}>
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setActiveCategory(cat)}
+            style={{
+              padding: "8px 18px",
+              borderRadius: "20px",
+              border: activeCategory === cat ? `1px solid ${GOLD}` : `1px solid ${BORDER}`,
+              background: activeCategory === cat ? GOLD : "transparent",
+              color: activeCategory === cat ? "#1a1613" : "#e8e2d8",
+              fontSize: "12px",
+              fontWeight: "700",
+              letterSpacing: "0.5px",
+              whiteSpace: "nowrap",
+              cursor: "pointer",
+            }}
+          >
+            {cat.toUpperCase()}
+          </button>
+        ))}
+      </div>
+
+      {loading && <p style={{ color: "#888", padding: "0 20px" }}>Loading products...</p>}
+      {!loading && filteredProducts.length === 0 && (
+        <p style={{ color: "#888", padding: "0 20px" }}>Koi product nahi mila.</p>
+      )}
+
+      {/* Featured hero card */}
+      {featured && (
+        <div style={{ padding: "0 16px 20px" }}>
+          <a href={`/product/${featured._id}`} style={{ textDecoration: "none" }}>
+            <div
               style={{
-                padding: "8px 18px",
-                borderRadius: "20px",
-                border: activeCategory === cat ? `1px solid ${GOLD}` : `1px solid ${BORDER}`,
-                background: activeCategory === cat ? GOLD : "transparent",
-                color: activeCategory === cat ? "#1a1613" : "#e8e2d8",
-                fontSize: "12px",
-                fontWeight: "700",
-                letterSpacing: "0.5px",
-                cursor: "pointer",
+                background: `linear-gradient(180deg, ${CARD2}, ${CARD})`,
+                borderRadius: "22px",
+                border: `1px solid ${BORDER}`,
+                padding: "18px",
               }}
             >
-              {cat.toUpperCase()}
-            </button>
-          ))}
+              <p style={{ color: GOLD, fontSize: "10px", letterSpacing: "3px", fontWeight: "700", margin: "0 0 8px 0" }}>
+                NEW ARRIVAL
+              </p>
+              <h2 style={{ fontSize: "22px", fontWeight: "500", color: "#f5f0e8", margin: "0 0 14px 0", fontFamily: "Georgia, serif" }}>
+                {featured.name}
+              </h2>
+              <div style={{ width: "100%", height: "260px", borderRadius: "16px", overflow: "hidden", background: "#111", position: "relative" }}>
+                <img
+                  src={featured.images && featured.images[0]}
+                  alt={featured.name}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  onError={(e) => { e.target.style.display = "none"; }}
+                />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "14px" }}>
+                <span style={{ fontSize: "22px", fontWeight: "700", color: GOLD }}>₹{featured.price}</span>
+                {featured.originalPrice > featured.price && (
+                  <span style={{ fontSize: "14px", color: "#666", textDecoration: "line-through" }}>₹{featured.originalPrice}</span>
+                )}
+              </div>
+            </div>
+          </a>
         </div>
+      )}
 
-        {loading && <p style={{ color: "#888" }}>Loading products...</p>}
-        {!loading && filteredProducts.length === 0 && (
-          <p style={{ color: "#888" }}>Koi product nahi mila.</p>
+      {/* Product grid */}
+      <main style={{ padding: "0 16px 40px" }}>
+        {restProducts.length > 0 && (
+          <h3 style={{ fontSize: "15px", fontWeight: "600", color: "#f5f0e8", marginBottom: "14px", fontFamily: "Georgia, serif" }}>
+            You May Also Like
+          </h3>
         )}
 
-        {/* Products grid */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-            gap: "18px",
+            gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+            gap: "14px",
           }}
         >
-          {filteredProducts.map((product) => {
+          {restProducts.map((product) => {
             const discount =
               product.originalPrice && product.price
                 ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
@@ -159,53 +172,28 @@ export default function Home() {
 
             return (
               <a key={product._id} href={`/product/${product._id}`} style={{ textDecoration: "none" }}>
-                <div
-                  style={{
-                    background: CARD,
-                    borderRadius: "14px",
-                    border: `1px solid ${BORDER}`,
-                    overflow: "hidden",
-                  }}
-                >
-                  <div style={{ width: "100%", height: "190px", background: "#111", position: "relative" }}>
+                <div style={{ background: CARD, borderRadius: "14px", border: `1px solid ${BORDER}`, overflow: "hidden" }}>
+                  <div style={{ width: "100%", height: "150px", background: "#111", position: "relative" }}>
                     <img
                       src={product.images && product.images[0]}
                       alt={product.name}
                       style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      onError={(e) => {
-                        e.target.style.display = "none";
-                      }}
+                      onError={(e) => { e.target.style.display = "none"; }}
                     />
                     {discount > 0 && (
-                      <span
-                        style={{
-                          position: "absolute",
-                          top: "8px",
-                          left: "8px",
-                          background: GOLD,
-                          color: "#1a1613",
-                          fontSize: "10px",
-                          fontWeight: "800",
-                          padding: "3px 8px",
-                          borderRadius: "20px",
-                        }}
-                      >
+                      <span style={{ position: "absolute", top: "8px", left: "8px", background: GOLD, color: "#1a1613", fontSize: "10px", fontWeight: "800", padding: "3px 8px", borderRadius: "20px" }}>
                         {discount}% OFF
                       </span>
                     )}
                   </div>
-                  <div style={{ padding: "12px" }}>
-                    <h3 style={{ fontSize: "13px", fontWeight: "600", color: "#f5f0e8", margin: "0 0 6px 0" }}>
+                  <div style={{ padding: "10px" }}>
+                    <h3 style={{ fontSize: "12px", fontWeight: "600", color: "#f5f0e8", margin: "0 0 6px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {product.name}
                     </h3>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span style={{ fontSize: "15px", fontWeight: "700", color: GOLD }}>
-                        ₹{product.price}
-                      </span>
+                      <span style={{ fontSize: "14px", fontWeight: "700", color: GOLD }}>₹{product.price}</span>
                       {product.originalPrice > product.price && (
-                        <span style={{ fontSize: "11px", color: "#666", textDecoration: "line-through" }}>
-                          ₹{product.originalPrice}
-                        </span>
+                        <span style={{ fontSize: "10px", color: "#666", textDecoration: "line-through" }}>₹{product.originalPrice}</span>
                       )}
                     </div>
                   </div>
@@ -220,22 +208,22 @@ export default function Home() {
       <div
         style={{
           borderTop: `1px solid ${BORDER}`,
-          padding: "30px 24px",
+          padding: "24px 16px",
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-          gap: "20px",
+          gap: "16px",
           textAlign: "center",
         }}
       >
         {[
-          { title: "Free Shipping", desc: "On all orders" },
-          { title: "24/7 Support", desc: "We're here to help" },
-          { title: "Easy Returns", desc: "Hassle free process" },
-          { title: "Secure Payment", desc: "100% protected" },
+          { icon: "🚚", title: "Free Shipping", desc: "On all orders" },
+          { icon: "↩️", title: "Easy Returns", desc: "7 day return policy" },
+          { icon: "🔒", title: "Secure Payment", desc: "100% protected" },
         ].map((f) => (
           <div key={f.title}>
-            <h4 style={{ color: GOLD, fontSize: "13px", margin: "0 0 6px 0", letterSpacing: "0.5px" }}>{f.title}</h4>
-            <p style={{ color: "#777", fontSize: "11px", margin: 0 }}>{f.desc}</p>
+            <p style={{ fontSize: "18px", margin: "0 0 6px 0" }}>{f.icon}</p>
+            <h4 style={{ color: GOLD, fontSize: "12px", margin: "0 0 4px 0" }}>{f.title}</h4>
+            <p style={{ color: "#777", fontSize: "10px", margin: 0 }}>{f.desc}</p>
           </div>
         ))}
       </div>
