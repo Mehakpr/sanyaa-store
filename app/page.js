@@ -29,6 +29,17 @@ export default function Home() {
 
   return (
     <div style={{ minHeight: "100vh", background: BG, fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
+        @keyframes fadeInLogo {
+          0% { opacity: 0; transform: translateY(-10px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        .sanyaa-logo {
+          animation: fadeInLogo 1.2s ease-out;
+        }
+      `}</style>
+
       {/* Header */}
       <header
         style={{
@@ -39,8 +50,17 @@ export default function Home() {
           borderBottom: `1px solid ${BORDER}`,
         }}
       >
-        <h1 style={{ fontSize: "22px", fontWeight: "700", margin: 0, color: "#f5f0e8", fontFamily: "Georgia, serif", letterSpacing: "3px" }}>
-          SANYAA
+        <h1
+          className="sanyaa-logo"
+          style={{
+            fontSize: "42px",
+            fontWeight: "700",
+            margin: 0,
+            color: GOLD,
+            fontFamily: "'Dancing Script', cursive",
+          }}
+        >
+          Sanyaa
         </h1>
         <a href="/cart" style={{ textDecoration: "none", color: GOLD, fontSize: "20px" }}>🛍</a>
       </header>
@@ -222,8 +242,8 @@ export default function Home() {
 
       {/* Footer */}
       <footer style={{ padding: "28px", textAlign: "center", borderTop: `1px solid ${BORDER}` }}>
-        <p style={{ color: "#f5f0e8", fontSize: "16px", margin: 0, letterSpacing: "3px", fontFamily: "Georgia, serif" }}>
-          SANYAA
+        <p style={{ color: GOLD, fontSize: "26px", margin: 0, fontFamily: "'Dancing Script', cursive" }}>
+          Sanyaa
         </p>
         <p style={{ color: "#666", fontSize: "11px", margin: "6px 0 0 0" }}>
           © 2026 Sanyaa. All rights reserved.
