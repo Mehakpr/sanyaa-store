@@ -1,18 +1,38 @@
 "use client";
 import { useEffect, useState } from "react";
 
+const STATUS_OPTIONS = ["placed", "processing", "shipped", "delivered"];
+
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadOrders = () => {
     fetch("/api/orders")
       .then((res) => res.json())
       .then((data) => {
         setOrders(data.orders || []);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    loadOrders();
   }, []);
+
+  const updateStatus = async (orderId, newStatus) => {
+    const res = await fetch(`/api/orders/${orderId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderStatus: newStatus }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      loadOrders();
+    } else {
+      alert("Error: " + data.error);
+    }
+  };
 
   return (
     <div style={{ padding: "20px", maxWidth: "800px", margin: "0 auto", fontFamily: "system-ui, sans-serif" }}>
@@ -61,7 +81,7 @@ export default function AdminOrders() {
               📍 {order.address}, {order.city} - {order.pincode}
             </p>
 
-            <div style={{ borderTop: "1px solid #eee", paddingTop: "10px" }}>
+            <div style={{ borderTop: "1px solid #eee", paddingTop: "10px", marginBottom: "12px" }}>
               <p style={{ fontSize: "12px", fontWeight: "600", color: "#3d2b1f", marginBottom: "6px" }}>
                 Items:
               </p>
@@ -70,6 +90,33 @@ export default function AdminOrders() {
                   • {item.name} {item.size && `(${item.size})`} {item.color && `- ${item.color}`} × {item.qty} — ₹{item.price}
                 </p>
               ))}
+            </div>
+
+            <div style={{ borderTop: "1px solid #eee", paddingTop: "12px" }}>
+              <p style={{ fontSize: "12px", fontWeight: "600", color: "#3d2b1f", marginBottom: "8px" }}>
+                Order Status:
+              </p>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                {STATUS_OPTIONS.map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => updateStatus(order._id, status)}
+                    style={{
+                      padding: "6px 14px",
+                      borderRadius: "16px",
+                      border: order.orderStatus === status ? "2px solid #3d2b1f" : "1px solid #ccc",
+                      background: order.orderStatus === status ? "#3d2b1f" : "#fff",
+                      color: order.orderStatus === status ? "#fff" : "#333",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      cursor: "pointer",
+                      textTransform: "capitalize",
+                    }}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         ))}

@@ -13,6 +13,7 @@ const OrderSchema = new mongoose.Schema(
         image: String,
       },
     ],
+    userId: { type: String },
     customerName: { type: String, required: true },
     phone: { type: String, required: true },
     address: { type: String, required: true },

@@ -70,3 +70,14 @@ export async function GET() {
     );
   }
 }
+
+export async function PUT(request) {
+  try {
+    await connectDB();
+    const { orderId, orderStatus } = await request.json();
+    const order = await Order.findByIdAndUpdate(orderId, { orderStatus }, { new: true });
+    return NextResponse.json({ success: true, order });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}

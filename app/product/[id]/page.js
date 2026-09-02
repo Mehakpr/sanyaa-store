@@ -1,350 +1,354 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 
-export default function ProductDetail() {
-  const params = useParams();
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+
+/*
+  Product detail (client component)
+  - Reads id from useParams, fetches /api/products/[id]
+  - Shows image carousel thumbnails, lightbox zoom on tap
+  - Size / color selection (if present in product)
+  - Add to Cart (localStorage) and Add to Wishlist
+*/
+
+export default function ProductPageClient() {
+  const { id } = useParams();
+  const router = useRouter();
   const [product, setProduct] = useState(null);
-  const [related, setRelated] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedSize, setSelectedSize] = useState("");
-  const [selectedColor, setSelectedColor] = useState("");
   const [activeImage, setActiveImage] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [selectedSize, setSelectedSize] = useState(null);
+  const [selectedColor, setSelectedColor] = useState(null);
+  const [wishIds, setWishIds] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("mk_wishlist") || "[]");
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
-    fetch(`/api/products/${params.id}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setProduct(data.product);
-        setLoading(false);
-        if (data.product?.sizes?.length) setSelectedSize(data.product.sizes[0]);
-        if (data.product?.colors?.length) setSelectedColor(data.product.colors[0]);
-
-        fetch("/api/products")
-          .then((res) => res.json())
-          .then((allData) => {
-            const others = (allData.products || []).filter(
-              (p) => p._id !== data.product._id && p.category === data.product.category
-            );
-            setRelated(others.slice(0, 6));
-          });
-      });
-  }, [params.id]);
-
-  const addToCart = () => {
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const cartId = product._id + (selectedSize || "") + (selectedColor || "");
-    const existing = cart.find((item) => item.cartId === cartId);
-    if (existing) {
-      existing.qty += 1;
-    } else {
-      cart.push({ ...product, cartId, size: selectedSize, color: selectedColor, qty: 1 });
+    async function load() {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/products/${id}`);
+        const data = await res.json();
+        if (data?.success && data.product) {
+          setProduct(data.product);
+          setActiveImage(0);
+          setSelectedSize(data.product.sizes?.[0] ?? null);
+          setSelectedColor(data.product.colors?.[0] ?? null);
+        } else {
+          setProduct(null);
+        }
+      } catch (e) {
+        console.error("err", e);
+        setProduct(null);
+      }
+      setLoading(false);
     }
-    localStorage.setItem("cart", JSON.stringify(cart));
-    return cart;
-  };
+    if (id) load();
+  }, [id]);
 
-  const handleAddToCart = () => {
-    addToCart();
-    alert("Product cart mein add ho gaya!");
-  };
+  useEffect(() => {
+    try {
+      localStorage.setItem("mk_wishlist", JSON.stringify(wishIds));
+    } catch {}
+  }, [wishIds]);
 
-  const buyNow = () => {
-    addToCart();
-    window.location.href = "/cart";
-  };
+  function toggleWish() {
+    if (!product) return;
+    setWishIds((prev) => {
+      if (prev.includes(product._id)) return prev.filter((x) => x !== product._id);
+      return [product._id, ...prev];
+    });
+  }
 
-  const GOLD = "#d4af37";
-  const BG = "#0e0c0a";
-  const CARD = "#1a1613";
-  const CARD2 = "#221c17";
-  const BORDER = "#2c261f";
+  function addToCart() {
+    if (!product) return;
+    const cartRaw = localStorage.getItem("mk_cart");
+    let cart = [];
+    try {
+      cart = JSON.parse(cartRaw || "[]");
+    } catch {}
+    const item = {
+      productId: product._id,
+      name: product.name,
+      price: product.price,
+      qty: 1,
+      size: selectedSize,
+      color: selectedColor,
+      image: product.images?.[0] ?? null,
+    };
+    cart.push(item);
+    try {
+      localStorage.setItem("mk_cart", JSON.stringify(cart));
+      alert("Added to cart"); // simple feedback (we'll replace with toast later)
+      router.push("/cart");
+    } catch {
+      alert("Could not add to cart");
+    }
+  }
 
-  if (loading) return <p style={{ padding: "24px", color: "#888", background: BG, minHeight: "100vh" }}>Loading...</p>;
-  if (!product) return <p style={{ padding: "24px", color: "#888", background: BG, minHeight: "100vh" }}>Product not found.</p>;
+  if (loading) {
+    return (
+      <div style={pstyles.page}>
+        <div style={pstyles.skelLarge} />
+      </div>
+    );
+  }
 
-  const images = product.images && product.images.length > 0 ? product.images : [];
-  const discount =
-    product.originalPrice && product.price
-      ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-      : 0;
-  const avgRating =
-    product.reviews && product.reviews.length > 0
-      ? (product.reviews.reduce((sum, r) => sum + r.rating, 0) / product.reviews.length).toFixed(1)
-      : null;
+  if (!product) {
+    return <div style={pstyles.page}><p style={{ padding: 18 }}>Product not found</p></div>;
+  }
+
+  const images = product.images && product.images.length ? product.images : ["/placeholder.png"];
+  const wished = wishIds.includes(product._id);
 
   return (
-    <div style={{ minHeight: "100vh", background: BG, fontFamily: "system-ui, sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');`}</style>
-
-      {/* Header */}
-      <header
-        style={{
-          padding: "16px 20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          borderBottom: `1px solid ${BORDER}`,
-        }}
-      >
-        <a href="/" style={{ textDecoration: "none" }}>
-          <h1 style={{ fontSize: "30px", fontWeight: "700", margin: 0, color: GOLD, fontFamily: "'Dancing Script', cursive" }}>
-            Sanyaa
-          </h1>
-        </a>
-        <div style={{ display: "flex", gap: "16px" }}>
-          <span style={{ color: GOLD, fontSize: "18px" }}>♡</span>
-          <a href="/cart" style={{ textDecoration: "none", color: GOLD, fontSize: "18px" }}>🛍</a>
-        </div>
-      </header>
-
-      {/* Category pill row (mobile version of sidebar) */}
-      <div style={{ display: "flex", gap: "8px", padding: "14px 20px", overflowX: "auto" }}>
-        <span style={{ background: GOLD, color: "#1a1613", padding: "6px 16px", borderRadius: "20px", fontSize: "11px", fontWeight: "700", whiteSpace: "nowrap" }}>
-          {product.category}
-        </span>
-        <span style={{ border: `1px solid ${BORDER}`, color: "#ccc", padding: "6px 16px", borderRadius: "20px", fontSize: "11px", whiteSpace: "nowrap" }}>
-          {product.subcategory}
-        </span>
+    <div style={pstyles.page}>
+      {/* Top bar */}
+      <div style={pstyles.topBar}>
+        <button style={pstyles.backBtn} onClick={() => router.back()}>◂</button>
+        <div style={{ flex: 1 }} />
+        <button onClick={toggleWish} style={pstyles.iconBtn}>{wished ? "❤" : "♡"}</button>
       </div>
 
-      {/* Hero product card */}
-      <div style={{ padding: "0 16px" }}>
-        <div
-          style={{
-            background: `linear-gradient(180deg, ${CARD2}, ${CARD})`,
-            borderRadius: "22px",
-            border: `1px solid ${BORDER}`,
-            padding: "18px",
-            position: "relative",
-          }}
-        >
-          <p style={{ color: GOLD, fontSize: "10px", letterSpacing: "3px", fontWeight: "700", margin: "0 0 8px 0" }}>
-            NEW ARRIVAL
-          </p>
-
-          <h2 style={{ fontSize: "24px", fontWeight: "500", color: "#f5f0e8", margin: "0 0 14px 0", fontFamily: "Georgia, serif", lineHeight: "1.2" }}>
-            {product.name}
-          </h2>
-
-          <div style={{ width: "100%", height: "280px", borderRadius: "16px", overflow: "hidden", background: "#111", position: "relative", marginBottom: "14px" }}>
-            {images[activeImage] && (
-              <img
-                src={images[activeImage]}
-                alt={product.name}
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                onError={(e) => { e.target.style.display = "none"; }}
-              />
-            )}
-            <button
-              onClick={handleAddToCart}
+      {/* Image gallery */}
+      <div style={pstyles.gallery}>
+        <img
+          src={images[activeImage]}
+          alt={product.name}
+          style={pstyles.mainImage}
+          onClick={() => setLightboxOpen(true)}
+        />
+        <div style={pstyles.thumbRow}>
+          {images.map((src, i) => (
+            <img
+              key={i}
+              src={src}
+              alt={i}
               style={{
-                position: "absolute",
-                bottom: "12px",
-                right: "12px",
-                width: "40px",
-                height: "40px",
-                borderRadius: "50%",
-                background: GOLD,
-                border: "none",
-                fontSize: "16px",
-                cursor: "pointer",
+                ...pstyles.thumb,
+                border: i === activeImage ? "2px solid #7A4B3A" : "2px solid transparent",
               }}
-            >
-              ♡
-            </button>
-            {discount > 0 && (
-              <span style={{ position: "absolute", top: "12px", left: "12px", background: GOLD, color: "#1a1613", fontSize: "11px", fontWeight: "800", padding: "4px 10px", borderRadius: "20px" }}>
-                {discount}% OFF
-              </span>
-            )}
-          </div>
-
-          {images.length > 1 && (
-            <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-              {images.map((img, i) => (
-                <img
-                  key={i}
-                  src={img}
-                  onClick={() => setActiveImage(i)}
-                  style={{
-                    width: "50px",
-                    height: "50px",
-                    objectFit: "cover",
-                    borderRadius: "8px",
-                    border: activeImage === i ? `2px solid ${GOLD}` : `1px solid ${BORDER}`,
-                    cursor: "pointer",
-                  }}
-                />
-              ))}
-            </div>
-          )}
-
-          <p style={{ fontSize: "13px", color: "#a8a29a", lineHeight: "1.6", margin: "0 0 16px 0" }}>
-            {product.description}
-          </p>
-
-          {avgRating && (
-            <p style={{ fontSize: "13px", color: GOLD, marginBottom: "14px" }}>
-              {"★".repeat(Math.round(avgRating))}{"☆".repeat(5 - Math.round(avgRating))}{" "}
-              <span style={{ color: "#999" }}>{avgRating} ({product.reviews.length})</span>
-            </p>
-          )}
-
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "18px" }}>
-            <span style={{ fontSize: "26px", fontWeight: "700", color: GOLD }}>₹{product.price}</span>
-            {product.originalPrice > product.price && (
-              <span style={{ fontSize: "15px", color: "#666", textDecoration: "line-through" }}>₹{product.originalPrice}</span>
-            )}
-          </div>
-
-          {product.colors && product.colors.length > 0 && (
-            <div style={{ display: "flex", gap: "10px", marginBottom: "18px", alignItems: "center" }}>
-              {product.colors.map((color) => (
-                <div
-                  key={color}
-                  onClick={() => setSelectedColor(color)}
-                  style={{
-                    width: "26px",
-                    height: "26px",
-                    borderRadius: "50%",
-                    background: color.toLowerCase().replace(" ", ""),
-                    border: selectedColor === color ? `2px solid ${GOLD}` : `1px solid ${BORDER}`,
-                    cursor: "pointer",
-                    boxShadow: selectedColor === color ? `0 0 0 2px ${BG}, 0 0 0 3px ${GOLD}` : "none",
-                  }}
-                />
-              ))}
-            </div>
-          )}
-
-          {product.sizes && product.sizes.length > 0 && (
-            <div style={{ marginBottom: "20px" }}>
-              <p style={{ fontSize: "12px", color: "#999", marginBottom: "8px" }}>Size</p>
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                {product.sizes.map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    style={{
-                      minWidth: "38px",
-                      height: "38px",
-                      padding: "0 10px",
-                      borderRadius: "8px",
-                      border: selectedSize === size ? `1.5px solid ${GOLD}` : `1px solid ${BORDER}`,
-                      background: selectedSize === size ? GOLD : "transparent",
-                      color: selectedSize === size ? "#1a1613" : "#e8e2d8",
-                      fontSize: "13px",
-                      fontWeight: "700",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {size}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+              onClick={() => setActiveImage(i)}
+            />
+          ))}
         </div>
       </div>
 
-      {/* You May Also Like */}
-      {related.length > 0 && (
-        <div style={{ padding: "24px 16px 0" }}>
-          <h3 style={{ fontSize: "15px", fontWeight: "600", color: "#f5f0e8", marginBottom: "12px", fontFamily: "Georgia, serif" }}>
-            You May Also Like
-          </h3>
-          <div style={{ display: "flex", gap: "12px", overflowX: "auto", paddingBottom: "8px" }}>
-            {related.map((p) => (
-              <a key={p._id} href={`/product/${p._id}`} style={{ textDecoration: "none", flexShrink: 0, width: "130px" }}>
-                <div style={{ background: CARD, borderRadius: "12px", border: `1px solid ${BORDER}`, overflow: "hidden" }}>
-                  <div style={{ width: "100%", height: "120px", background: "#111" }}>
-                    <img src={p.images && p.images[0]} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={(e) => { e.target.style.display = "none"; }} />
-                  </div>
-                  <div style={{ padding: "10px" }}>
-                    <p style={{ fontSize: "12px", color: "#f5f0e8", margin: "0 0 4px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
-                    <p style={{ fontSize: "13px", color: GOLD, fontWeight: "700", margin: 0 }}>₹{p.price}</p>
-                  </div>
-                </div>
-              </a>
-            ))}
-          </div>
+      {/* Lightbox */}
+      {lightboxOpen && (
+        <div style={pstyles.lightbox} onClick={() => setLightboxOpen(false)}>
+          <img src={images[activeImage]} alt="zoom" style={pstyles.lightboxImage} />
         </div>
       )}
 
-      {/* Trust badges */}
-      <div style={{ display: "flex", justifyContent: "space-around", padding: "24px 16px", textAlign: "center" }}>
-        <div>
-          <p style={{ fontSize: "16px", margin: "0 0 4px 0" }}>🚚</p>
-          <p style={{ fontSize: "10px", color: "#999", margin: 0 }}>Free Shipping</p>
+      {/* Details */}
+      <div style={pstyles.detailCard}>
+        <div style={pstyles.titleRow}>
+          <h2 style={pstyles.title}>{product.name}</h2>
+          <div style={pstyles.rating}>★ 4.5</div>
         </div>
-        <div>
-          <p style={{ fontSize: "16px", margin: "0 0 4px 0" }}>↩️</p>
-          <p style={{ fontSize: "10px", color: "#999", margin: 0 }}>Easy Returns</p>
-        </div>
-        <div>
-          <p style={{ fontSize: "16px", margin: "0 0 4px 0" }}>🔒</p>
-          <p style={{ fontSize: "10px", color: "#999", margin: 0 }}>Secure Payment</p>
-        </div>
-      </div>
 
-      {/* Sticky bottom buttons */}
-      <div style={{ display: "flex", gap: "10px", padding: "16px", position: "sticky", bottom: 0, background: BG, borderTop: `1px solid ${BORDER}` }}>
-        <button
-          onClick={handleAddToCart}
-          style={{
-            flex: 1,
-            background: "transparent",
-            color: GOLD,
-            padding: "15px",
-            border: `1.5px solid ${GOLD}`,
-            borderRadius: "10px",
-            fontWeight: "700",
-            fontSize: "13px",
-            letterSpacing: "1px",
-            cursor: "pointer",
-          }}
-        >
-          ADD TO BAG
-        </button>
-        <button
-          onClick={buyNow}
-          style={{
-            flex: 1,
-            background: GOLD,
-            color: "#1a1613",
-            padding: "15px",
-            border: "none",
-            borderRadius: "10px",
-            fontWeight: "700",
-            fontSize: "13px",
-            letterSpacing: "1px",
-            cursor: "pointer",
-          }}
-        >
-          BUY NOW
-        </button>
-      </div>
+        <p style={pstyles.price}>₹{product.price?.toFixed?.(2)}</p>
 
-      {/* Reviews */}
-      {product.reviews && product.reviews.length > 0 && (
-        <div style={{ padding: "0 16px 30px" }}>
-          <h3 style={{ fontSize: "15px", fontWeight: "600", color: "#f5f0e8", margin: "20px 0 12px 0", fontFamily: "Georgia, serif" }}>
-            Customer Reviews
-          </h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            {product.reviews.map((r, i) => (
-              <div key={i} style={{ background: CARD, padding: "14px", borderRadius: "10px", border: `1px solid ${BORDER}` }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                  <span style={{ fontWeight: "600", fontSize: "13px", color: "#f5f0e8" }}>{r.reviewerName}</span>
-                  <span style={{ color: GOLD, fontSize: "12px" }}>{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span>
-                </div>
-                <p style={{ fontSize: "12px", color: "#a8a29a", margin: 0 }}>{r.comment}</p>
-              </div>
-            ))}
+        <p style={pstyles.description}>{product.description}</p>
+
+        {/* Size selectors */}
+        {product.sizes && product.sizes.length > 0 && (
+          <div style={{ marginTop: 12 }}>
+            <div style={pstyles.subLabel}>Select Size</div>
+            <div style={pstyles.optionsRow}>
+              {product.sizes.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setSelectedSize(s)}
+                  style={{
+                    ...pstyles.optionBtn,
+                    background: selectedSize === s ? "#7A4B3A" : "#fff",
+                    color: selectedSize === s ? "#fff" : "#2f2a28",
+                  }}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
+        )}
+
+        {/* Color selectors */}
+        {product.colors && product.colors.length > 0 && (
+          <div style={{ marginTop: 12 }}>
+            <div style={pstyles.subLabel}>Select Color</div>
+            <div style={pstyles.optionsRow}>
+              {product.colors.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setSelectedColor(c)}
+                  style={{
+                    ...pstyles.colorSwatch,
+                    border: selectedColor === c ? "2px solid #7A4B3A" : "2px solid #eee",
+                    background: "#fff",
+                  }}
+                >
+                  <div style={{ fontSize: 12 }}>{c}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Sticky add-to-cart bar */}
+      <div style={pstyles.stickyBar}>
+        <div>
+          <div style={{ fontSize: 12, color: "#85746b" }}>Total Price</div>
+          <div style={{ fontWeight: 700, color: "#7A4B3A" }}>₹{product.price?.toFixed?.(2)}</div>
         </div>
-      )}
+        <button style={pstyles.addCartBtn} onClick={addToCart}>
+          Add to Cart
+        </button>
+      </div>
     </div>
   );
 }
+
+/* styles for product page */
+const pstyles = {
+  page: {
+    padding: "12px 14px 110px 14px",
+    background: "#F7F3F1",
+    minHeight: "100vh",
+    color: "#2f2a28",
+    fontFamily: "Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial",
+  },
+  topBar: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  backBtn: {
+    background: "#fff",
+    borderRadius: 10,
+    padding: "6px 10px",
+    border: "none",
+    boxShadow: "0 6px 14px rgba(0,0,0,0.06)",
+  },
+  iconBtn: {
+    background: "#fff",
+    borderRadius: 10,
+    padding: "6px 10px",
+    border: "none",
+    fontSize: 16,
+  },
+
+  gallery: {
+    marginBottom: 12,
+  },
+  mainImage: {
+    width: "100%",
+    height: 360,
+    objectFit: "cover",
+    borderRadius: 16,
+    boxShadow: "0 10px 24px rgba(0,0,0,0.06)",
+  },
+  thumbRow: {
+    display: "flex",
+    gap: 8,
+    marginTop: 10,
+    overflowX: "auto",
+  },
+  thumb: {
+    width: 64,
+    height: 64,
+    borderRadius: 10,
+    objectFit: "cover",
+    cursor: "pointer",
+  },
+
+  lightbox: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.7)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 80,
+  },
+  lightboxImage: {
+    width: "90%",
+    maxHeight: "90%",
+    objectFit: "contain",
+    borderRadius: 8,
+  },
+
+  detailCard: {
+    background: "#fff",
+    borderRadius: 16,
+    padding: 14,
+    boxShadow: "0 8px 20px rgba(20,15,12,0.04)",
+    marginBottom: 90,
+  },
+  titleRow: { display: "flex", alignItems: "center", justifyContent: "space-between" },
+  title: { margin: 0, fontSize: 18 },
+  rating: { color: "#f3a712", fontWeight: 700 },
+
+  price: { marginTop: 8, fontSize: 18, color: "#7A4B3A", fontWeight: 800 },
+
+  description: { marginTop: 10, fontSize: 13, color: "#6b5b50", lineHeight: 1.45 },
+
+  subLabel: { fontSize: 12, color: "#7b6b61", marginBottom: 8, fontWeight: 600 },
+
+  optionsRow: { display: "flex", gap: 8, flexWrap: "wrap" },
+  optionBtn: {
+    borderRadius: 12,
+    padding: "6px 10px",
+    border: "1px solid #efe6dd",
+    cursor: "pointer",
+    fontWeight: 700,
+  },
+
+  colorSwatch: {
+    width: 44,
+    height: 36,
+    borderRadius: 10,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+  },
+
+  stickyBar: {
+    position: "fixed",
+    left: 12,
+    right: 12,
+    bottom: 12,
+    background: "#fff",
+    borderRadius: 14,
+    padding: 12,
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    boxShadow: "0 12px 40px rgba(20,15,12,0.08)",
+  },
+  addCartBtn: {
+    background: "#7A4B3A",
+    color: "#fff",
+    padding: "10px 14px",
+    borderRadius: 12,
+    border: "none",
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+
+  // skeleton
+  skelLarge: {
+    height: 320,
+    borderRadius: 14,
+    background: "linear-gradient(90deg,#efe9e2,#f6f2ef)",
+  },
+};
